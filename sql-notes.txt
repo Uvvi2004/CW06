@@ -1,0 +1,133 @@
+============================================================
+CW-06 SQL Notes - Schema, Seed Data, and Practice Queries
+Author : ucota1 (Cota)
+Course : Web Programming - Prof. Henry Louis - GSU
+============================================================
+
+------------------------------------------------------------
+1) CONNECT FROM SSH
+------------------------------------------------------------
+ssh ucota1@codd.cs.gsu.edu
+mysql -u ucota1 -p
+SHOW DATABASES;
+USE myDB;
+SHOW TABLES;
+
+------------------------------------------------------------
+2) CREATE TABLE - employees schema
+------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS employees (
+    emp_id          INT AUTO_INCREMENT PRIMARY KEY,
+    emp_name        VARCHAR(100) NOT NULL,
+    job_name        VARCHAR(100) NOT NULL,
+    salary          DECIMAL(10,2) NOT NULL,
+    hire_date       DATE NOT NULL,
+    department_id   INT NOT NULL,
+    department_name VARCHAR(100) NOT NULL
+);
+
+DESCRIBE employees;
+
+------------------------------------------------------------
+3) SEED DATA - INSERT starter rows
+------------------------------------------------------------
+INSERT INTO employees
+    (emp_name, job_name, salary, hire_date, department_id, department_name)
+VALUES
+    ('Ana Lopez',  'Developer', 73000.00, '2025-09-15', 1, 'Engineering'),
+    ('David Kim',  'Analyst',   68000.00, '2025-11-01', 2, 'Finance'),
+    ('Sara Cole',  'Designer',  71000.00, '2026-01-08', 3, 'Marketing'),
+    ('James Reed', 'Manager',   90000.00, '2024-06-20', 1, 'Engineering');
+
+-- Confirm row count
+SELECT COUNT(*) AS total FROM employees;
+
+------------------------------------------------------------
+4) LEVEL 1 - basic SELECT / WHERE / ORDER BY
+------------------------------------------------------------
+-- All employees, highest paid first
+SELECT emp_id, emp_name, job_name, salary
+FROM employees
+ORDER BY salary DESC;
+
+-- Filter: salaries above 70000
+SELECT emp_id, emp_name, job_name, salary
+FROM employees
+WHERE salary > 70000
+ORDER BY salary DESC;
+
+-- Date range: hires in 2025
+SELECT emp_name, hire_date
+FROM employees
+WHERE hire_date BETWEEN '2025-01-01' AND '2025-12-31'
+ORDER BY hire_date ASC;
+
+-- Multiple departments using IN
+SELECT emp_name, department_name, salary
+FROM employees
+WHERE department_name IN ('Engineering', 'Marketing')
+ORDER BY department_name, salary DESC;
+
+------------------------------------------------------------
+5) LEVEL 2 - aggregates and grouping
+------------------------------------------------------------
+SELECT COUNT(*) AS total_employees FROM employees;
+SELECT AVG(salary) AS avg_salary FROM employees;
+SELECT MAX(salary) AS highest, MIN(salary) AS lowest FROM employees;
+
+-- Headcount and average salary per department
+SELECT department_name,
+       COUNT(*)    AS emp_count,
+       AVG(salary) AS avg_sal
+FROM employees
+GROUP BY department_name
+ORDER BY emp_count DESC;
+
+-- Pattern + range filter
+SELECT emp_name, job_name, salary
+FROM employees
+WHERE job_name LIKE '%er%'
+  AND salary BETWEEN 70000 AND 95000
+ORDER BY salary DESC;
+
+------------------------------------------------------------
+6) LEVEL 3 - HAVING, CASE, subqueries
+------------------------------------------------------------
+-- Departments with avg salary above 70000
+SELECT department_name,
+       COUNT(*)    AS emp_count,
+       AVG(salary) AS avg_salary
+FROM employees
+GROUP BY department_name
+HAVING AVG(salary) > 70000
+ORDER BY avg_salary DESC;
+
+-- Salary band classification
+SELECT emp_name,
+       salary,
+       CASE
+         WHEN salary >= 85000 THEN 'High'
+         WHEN salary >= 70000 THEN 'Medium'
+         ELSE 'Standard'
+       END AS salary_band
+FROM employees
+ORDER BY salary DESC;
+
+-- Earners above the overall average (subquery)
+SELECT emp_name, salary
+FROM employees
+WHERE salary > (SELECT AVG(salary) FROM employees)
+ORDER BY salary DESC;
+
+------------------------------------------------------------
+7) MAINTENANCE - safe UPDATE / DELETE patterns
+------------------------------------------------------------
+-- Always include WHERE on UPDATE/DELETE
+UPDATE employees
+SET salary = 76000.00, job_name = 'Senior Designer'
+WHERE emp_id = 3;
+
+DELETE FROM employees WHERE emp_id = 3;
+
+-- Verify after maintenance
+SELECT * FROM employees ORDER BY emp_id DESC LIMIT 5;
